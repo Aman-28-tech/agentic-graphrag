@@ -1,0 +1,61 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Agentic GraphRAG — Production Dependencies
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── LLM Providers (API-based) ─────────────────────────────────────────────────
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-anthropic>=0.2.0
+langchain-community>=0.3.0
+langchain-text-splitters>=0.3.0
+groq>=0.9.0
+
+# ── Agent Orchestration ───────────────────────────────────────────────────────
+langgraph>=0.2.0
+
+# ── Local LLM Fallback (CPU-only PyTorch) ─────────────────────────────────────
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.1.0
+transformers>=4.40.0
+accelerate>=0.27.0
+
+# ── Vector Database ───────────────────────────────────────────────────────────
+qdrant-client>=1.8.0
+
+# ── Embeddings ────────────────────────────────────────────────────────────────
+sentence-transformers>=2.6.0
+
+# ── Cross-Encoder Re-ranker ───────────────────────────────────────────────────
+# (uses sentence-transformers CrossEncoder class, no extra package needed)
+
+# ── Keyword Search ────────────────────────────────────────────────────────────
+rank-bm25>=0.2.2
+
+# ── Knowledge Graph ───────────────────────────────────────────────────────────
+networkx>=3.2.0
+
+# ── Document Parsing ──────────────────────────────────────────────────────────
+pymupdf>=1.24.0
+unstructured>=0.15.0
+unstructured[pdf]>=0.15.0
+
+# ── Evaluation (RAGAS) ────────────────────────────────────────────────────────
+ragas>=0.2.0
+datasets>=2.18.0
+
+# ── Backend API ───────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+streamlit>=1.38.0
+requests>=2.31.0
+plotly>=5.0.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+numpy>=1.24.0
+scipy>=1.11.0
+tqdm>=4.66.0
+rich>=13.7.0
+python-dotenv>=1.0.0

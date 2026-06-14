@@ -1,0 +1,180 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  Agentic GraphRAG — Docker Compose (Production)
+#
+#  Services:
+#    qdrant   — Vector database (persistent storage)
+#    api      — FastAPI backend (GraphRAG pipeline)
+#    streamlit — Web UI frontend
+#    ingest   — One-shot ingestion pipeline (run once)
+#
+#  Usage:
+#    docker compose up -d qdrant          # Start Qdrant first
+#    docker compose run --rm ingest       # Download papers & build index
+#    docker compose up -d api streamlit   # Start API + UI
+#
+#  Quick start (all at once):
+#    docker compose up -d
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Vector Database ────────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.18.0
+    container_name: graphrag-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - qdrant_local:/app/qdrant_storage
+      - bm25_index:/app/bm25_data
+      - ./docs:/app/docs:ro
+    env_file:
+      - .env
+    environment:
+      - QDRANT_MODE=server
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    depends_on:
+      - qdrant
+    command: ["python", "api.py"]
+
+  # ── Streamlit Frontend ─────────────────────────────────────────────────────
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-streamlit
+    restart: unless-stopped
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    env_file:
+      - .env
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    command: >
+      streamlit run app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.headless=true
+      --browser.gatherUsageStats=false
+
+  # ── Streamlit Evaluation Dashboard ─────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-dashboard
+    restart: unless-stopped
+    ports:
+      - "8502:8502"
+    env_file:
+      - .env
+    volumes:
+      - ./eval_results.json:/app/eval_results.json:ro
+      - ./graph_visualization.html:/app/graph_visualization.html:ro
+    command: >
+      streamlit run dashboard.py
+      --server.port=8502
+      --server.address=0.0.0.0
+      --server.headless=true
+      --browser.gatherUsageStats=false
+    profiles:
+      - tools
+
+  # ── Ingestion Pipeline (one-shot) ──────────────────────────────────────────
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-ingest
+    volumes:
+      - qdrant_local:/app/qdrant_storage
+      - bm25_index:/app/bm25_data
+      - ./docs:/app/docs
+    env_file:
+      - .env
+    environment:
+      - QDRANT_MODE=server
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - HF_HUB_OFFLINE=0
+    depends_on:
+      - qdrant
+    command: ["python", "ingest.py"]
+    profiles:
+      - tools
+
+  # ── CLI Demo (one-shot) ────────────────────────────────────────────────────
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-demo
+    volumes:
+      - qdrant_local:/app/qdrant_storage
+      - bm25_index:/app/bm25_data
+      - ./docs:/app/docs:ro
+    env_file:
+      - .env
+    environment:
+      - QDRANT_MODE=server
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      - qdrant
+    command: ["python", "demo.py"]
+    profiles:
+      - tools
+
+  # ── Evaluation (one-shot) ──────────────────────────────────────────────────
+  evaluate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-evaluate
+    volumes:
+      - qdrant_local:/app/qdrant_storage
+      - bm25_index:/app/bm25_data
+      - ./docs:/app/docs:ro
+      - ./eval_results.json:/app/eval_results.json
+      - ./graph_visualization.html:/app/graph_visualization.html
+    env_file:
+      - .env
+    environment:
+      - QDRANT_MODE=server
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      - qdrant
+    command: ["python", "evaluate.py"]
+    profiles:
+      - tools
+
+volumes:
+  qdrant_data:
+    driver: local
+  qdrant_local:
+    driver: local
+  bm25_index:
+    driver: local
