@@ -60,6 +60,61 @@ Traditional RAG systems rely solely on vector similarity retrieval and often str
 
 Agentic GraphRAG combines Knowledge Graph traversal, semantic vector retrieval, and BM25 keyword retrieval to significantly improve retrieval coverage and reasoning quality.
 
+## WORKFLOW
+
+```
+                 RESEARCH PAPERS
+                       │
+                       ▼
+              ┌─────────────────┐
+              │ Document Loader │
+              └────────┬────────┘
+                       ▼
+                  Chunk documents
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+      Vector Embeddings      Entity Extraction
+             │                   │
+             ▼                   ▼
+          Qdrant            Knowledge Graph
+       Vector Database         NetworkX
+             │                   │
+             └─────────┬─────────┘
+                       │
+                       ▼
+                  USER QUESTION
+                       │
+                       ▼
+                Query Expansion
+                  /    |    \
+                 /     |     \
+                ▼      ▼      ▼
+             Graph   Vector   BM25
+             Search  Search   Search
+                \      |      /
+                 \     |     /
+                  ▼    ▼    ▼
+                 RRF Fusion
+                       │
+                       ▼
+                Cross-Encoder
+                  Re-ranking
+                       │
+                       ▼
+                     LLM
+                       │
+                       ▼
+                Answer Generator
+                       │
+                       ▼
+                   Verifier
+                       │
+                       ▼
+             Answer + Confidence
+```
+
+
 ## Architecture
 
 ```
